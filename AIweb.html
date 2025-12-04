@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Video Story</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem 3rem;
+            border-radius: 4px;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .instructions.hidden {
+            opacity: 0;
+        }
+
+        .instructions p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #f0e68c;
+            font-style: italic;
+        }
+
+
+
+        .click-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="video" playsinline>
+            <source id="videoSource" src="usa1.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <div class="overlay"></div>
+
+    <div class="instructions" id="instructions">
+        <p>Click, press arrow keys to advance<br>Space to play/pause</p>
+    </div>
+
+    <div class="click-area" id="clickArea"></div>
+
+    <audio id="usaAudio" loop>
+        <source src="usasong.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="chinaAudio" loop>
+        <source src="chinasong.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const video = document.getElementById('video');
+        const videoSource = document.getElementById('videoSource');
+        const instructions = document.getElementById('instructions');
+        const clickArea = document.getElementById('clickArea');
+        const usaAudio = document.getElementById('usaAudio');
+        const chinaAudio = document.getElementById('chinaAudio');
+        
+        let currentCountry = 'usa';
+        let currentIndex = 1;
+        let hasStarted = false;
+
+        // Hide instructions after 3 seconds
+        setTimeout(() => {
+            instructions.classList.add('hidden');
+        }, 3000);
+
+        function updateCountryIndicator() {
+            // Removed - no longer needed
+        }
+
+        function loadVideo(country, index) {
+            const videoFile = `${country}${index}.mp4`;
+            console.log('Attempting to load:', videoFile);
+            videoSource.src = videoFile;
+            video.load();
+            if (hasStarted) {
+                video.play();
+            }
+            currentCountry = country;
+            currentIndex = index;
+            
+            // Switch audio based on country
+            if (country === 'usa') {
+                chinaAudio.pause();
+                usaAudio.play();
+            } else {
+                usaAudio.pause();
+                chinaAudio.play();
+            }
+        }
+
+        // Error handling
+        video.addEventListener('error', (e) => {
+            console.error('Video error:', e);
+            console.error('Failed to load:', videoSource.src);
+            alert('Could not load video: ' + videoSource.src + '\n\nMake sure your video files are named exactly:\nusa1.mp4, usa2.mp4, china1.mp4, china2.mp4\n\nAnd are in the same folder as this HTML file.');
+        });
+
+        video.addEventListener('loadeddata', () => {
+            console.log('Video loaded successfully:', videoSource.src);
+        });
+
+        // Click to switch between countries
+        clickArea.addEventListener('click', () => {
+            if (!hasStarted) {
+                hasStarted = true;
+                video.play();
+                usaAudio.play(); // Start USA audio with first video
+                instructions.classList.add('hidden');
+            } else {
+                // Switch country - keep same index number
+                if (currentCountry === 'usa') {
+                    loadVideo('china', currentIndex);
+                } else {
+                    // When switching from china to usa, increment index
+                    currentIndex++;
+                    // Check if we've exceeded usa video count
+                    if (currentIndex > 9) {
+                        currentIndex = 1; // Reset to usa1
+                    }
+                    loadVideo('usa', currentIndex);
+                }
+            }
+        });
+
+        // When video ends, auto-advance to next video in same country
+        video.addEventListener('ended', () => {
+            currentIndex++;
+            // Check if we've exceeded the video count
+            if (currentCountry === 'usa' && currentIndex > 9) {
+                // Reset to beginning
+                currentIndex = 1;
+                loadVideo('usa', 1);
+            } else if (currentCountry === 'china' && currentIndex > 8) {
+                // Reset to beginning
+                currentIndex = 1;
+                loadVideo('china', 1);
+            } else {
+                loadVideo(currentCountry, currentIndex);
+            }
+        });
+
+        // Keyboard controls for testing
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                if (!hasStarted) {
+                    hasStarted = true;
+                    video.play();
+                    instructions.classList.add('hidden');
+                } else {
+                    if (video.paused) {
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
